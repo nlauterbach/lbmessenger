@@ -1,36 +1,55 @@
 Module.register("lbmessenger",{
 	// Default module config.
 	defaults: {
-    refreshPeriod: 30000,
-    messageURL: 'http://lbmessenger.azurewebsites.net/messages/'
+    		refreshPeriod: 5000,
+    		messageURL: 'http://lbmessenger.azurewebsites.net/messages/',
+		message: 'Hello'
 	},
-  //start
-  start: function() {
-    var self = this;
-    self.updateDom();
-    setInterval(function() {
-      self.updateDom(); // no speed defined, so it updates instantly.
-    }, this.config.refreshPeriod); //perform every 1000 milliseconds.
-  },
-  messagePull: function(callback) {
-		var xobj = new XMLHttpRequest(), path = this.config.messageURL;
-		xobj.overrideMimeType("application/json");
-		xobj.open("GET", path, true);
-		xobj.onreadystatechange = function() {
-			if (xobj.readyState == 4 && xobj.status == "200") {
-				callback(xobj.responseText);
+	//start
+	start: function() {
+
+		Log.info("Starting module: " + this.name);
+		var self = this;
+		self.updateDom();
+
+		setInterval(function() {
+			self.updateDom(); // no speed defined, so it updates instantly.
+    		}, this.config.refreshPeriod); //perform every at given interval
+	},
+
+	messagePull: function(callback) {
+		var data = null;
+
+		var xhr = new XMLHttpRequest();
+		xhr.withCredentials = false;
+
+		xhr.addEventListener("readystatechange", function () {
+			if (this.readyState === 4) {
+				callback(this.responseText);
 			}
-		};
-		xobj.send(null);
+		});
+
+		xhr.open("GET", this.config.messageURL);
+		xhr.setRequestHeader("cache-control", "no-cache");
+
+		xhr.send(data);
+		
 	},
 	// Override dom generator.
-	getDom: function() {
-    this.messagePull(function(response) {
-			self.config.compliments = JSON.parse(response);
+  getDom: function() {
+	var self = this;
+	this.messagePull(function(response){
+		var pulledMsg = JSON.parse(response);
+		pulledMsgText = pulledMsg["message"];
+		if(pulledMsgText != self.config.message){
+			self.config.message = pulledMsgText;
 			self.updateDom();
-		});
-		var wrapper = document.createElement("div");
-		wrapper.innerHTML = this.config.text;
-		return wrapper;
+		}
+	});
+	var msgNode = document.createTextNode(this.config.message);
+	var wrapper = document.createElement("div");
+	wrapper.className = "thin xlarge bright pre-line";
+	wrapper.appendChild(msgNode);
+	return wrapper;
 	}
 });
